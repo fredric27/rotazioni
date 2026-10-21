@@ -2,7 +2,7 @@
 import { Arena, COURT_STYLES, toWorld } from './arena.js';
 import {
   makeScenario, scenarioFrom, reevaluate, withConstraintMargin, swapZones, zoneCenterFormation,
-  baseFormation, ROTATION_NOTES, DIFFICULTY, transitionSpot,
+  baseFormation, DIFFICULTY, transitionSpot, notesFor, OPP_ROTATIONS, commonFault,
 } from './formations.js';
 import { rotationZonesWithLibero, describeViolation, misleadingPairs, ROLES, CONSTRAINTS, ROTATION_SEQUENCE, describeConstraint } from './rules.js';
 import { makeTeams, KITS } from './team.js';
@@ -21,7 +21,7 @@ const store = {
 const DEFAULTS = {
   obsTime: 6, varTime: true, reactTime: 2, view: 'alterna', difficulty: 'medio', faultProb: 0.45, rounds: 20,
   strict: true, freeze: false, libero: true, gender: 'M', kitHome: 'auto', kitAway: 'auto', kitLibero: 'auto',
-  court: 'classico', cardStyle: 'vista', pip: true, sound: true,
+  court: 'classico', cardStyle: 'vista', pip: true, sound: true, oppReceive: 'mai',
 };
 const settings = { ...DEFAULTS, ...store.get('settings', {}) };
 const emptyStats = () => ({
@@ -216,6 +216,14 @@ function weightedRotation() {
   return 1;
 }
 
+// Opposto in ricezione: solo nelle rotazioni in cui è in seconda linea (P4, P3, P2).
+function pickVariant(rot) {
+  if (!OPP_ROTATIONS.includes(rot)) return null;
+  if (settings.oppReceive === 'sempre') return 'opp';
+  if (settings.oppReceive === 'aVolte' && Math.random() < 0.4) return 'opp';
+  return null;
+}
+
 function newRound() {
   roundId++;
   closePanel();
@@ -225,7 +233,7 @@ function newRound() {
   const view = pickView();
   const scenario = makeScenario(rot, teams[recv], {
     difficulty: settings.difficulty, faultProb: Number(settings.faultProb), libero: settings.libero,
-    forceKind: session.kind === 'recognize' ? 'legal' : undefined,
+    forceKind: session.kind === 'recognize' ? 'legal' : undefined, variant: pickVariant(rot),
   });
   arena.clearOverlay();
   arena.showZones(side, false);
@@ -272,10 +280,10 @@ function renderHud() {
   const t = r.team;
   let info = '';
   if (kind === 'assist') {
-    const note = ROTATION_NOTES[r.rot];
+    const note = notesFor(r.rot, r.scenario.variant);
     info = `<div class="rot-badge">P${r.rot}</div>
       <div class="info-body">
-        <div class="info-title">Palleggiatore n°${t.numbers.P} in zona ${r.rot} · ${teamLabel(t)}</div>
+        <div class="info-title">Palleggiatore n°${t.numbers.P} in zona ${r.rot}${r.scenario.variant === 'opp' ? ' · opposto in ricezione' : ''} · ${teamLabel(t)}</div>
         <p class="info-note">${note.text}</p>
         <div class="info-toggles">
           <label><input type="checkbox" id="tg-labels" ${store.get('assistLabels', true) ? 'checked' : ''}> Etichette</label>
@@ -482,7 +490,7 @@ function explainScenario(sc, { early = false } = {}) {
     html += `<p class="ex-h bad">${sc.evaluation.violations.length > 1 ? 'Relazioni violate' : 'Relazione violata'} al colpo di servizio:</p><ul class="ex-list">`;
     for (const v of sc.evaluation.violations) html += `<li><span class="pair bad">${v.c.id}</span> ${describeViolation(v)} <small>(${Math.round(-v.margin * 100)} cm)</small></li>`;
     html += '</ul>';
-    if (sc.kind === 'swap') html += '<p class="note">Due giocatori si sono scambiati il posto: la disposizione sembra normale, ma i numeri non sono dove dovrebbero.</p>';
+    if (sc.label) html += `<p class="note"><b>${sc.kind === 'fault' ? 'Fallo tipico' : sc.kind === 'swap' ? 'Giocatori scambiati' : 'Rotazione sbagliata'}:</b> ${sc.label}</p>`;
   } else {
     html += '<p class="ex-h good">Tutte le 7 relazioni erano rispettate.</p>';
     const tight = sc.evaluation.results.filter((x) => x.margin < 0.25).sort((a, b) => a.margin - b.margin)[0];
@@ -496,7 +504,7 @@ function explainScenario(sc, { early = false } = {}) {
 
 function showFeedback(r, points) {
   const o = OUTCOMES[r.outcome];
-  const note = ROTATION_NOTES[r.rot];
+  const note = notesFor(r.rot, r.scenario.variant);
   const orient = r.view === 'r1' ? 'r1' : 'r2';
   el.panel.innerHTML = `
     <div class="fb-head ${o.cls}">
@@ -539,8 +547,8 @@ function answerRotation(rot) {
   if (good) { session.correct++; session.streak++; } else session.streak = 0;
   arena.setLabels((p) => ({ main: ROLES[p.role].short, sub: `zona ${p.zone}`, color: p.role === 'P' ? '#ffc629' : '#fff' }));
   arena.clearOverlay();
-  arena.showConstraints(r.scenario.evaluation.results, r.side, { only: ROTATION_NOTES[r.rot].critical });
-  const note = ROTATION_NOTES[r.rot];
+  const note = notesFor(r.rot, r.scenario.variant);
+  arena.showConstraints(r.scenario.evaluation.results, r.side, { only: note.critical });
   const setter = r.scenario.players.find((p) => p.role === 'P');
   el.panel.innerHTML = `
     <div class="fb-head ${good ? 'good' : 'bad'}">
@@ -567,7 +575,7 @@ function showSummary() {
   const counts = (k) => s.log.filter((l) => l.outcome === k).length;
   const rows = s.log.map((l, i) => `<tr class="${OUTCOMES[l.outcome].ok ? '' : 'err'}" data-i="${i}">
       <td>${l.n}</td><td>P${l.rot}</td><td>${l.view === 'r1' ? '1°' : '2°'}</td>
-      <td>${l.scenario.fault ? 'Fallo ' + l.scenario.evaluation.violations.map((v) => v.c.id).join(', ') : 'Regolare'}</td>
+      <td>${l.scenario.kind === 'wrongrot' ? 'Rotazione sbagliata' : l.scenario.fault ? 'Fallo ' + l.scenario.evaluation.violations.map((v) => v.c.id).join(', ') : 'Regolare'}${l.scenario.variant === 'opp' ? ' <small>(opp. in ricezione)</small>' : ''}</td>
       <td>${OUTCOMES[l.outcome].title}</td><td>${l.points}</td></tr>`).join('');
   openModal(`
     <h2>Fine partita</h2>
@@ -627,11 +635,11 @@ function buildScene(sc) {
   teamSide = [side, -side];
   const team = teams[0];
   const zonesForm = sc.formation === 'zones';
-  let players = zonesForm ? zoneCenterFormation(sc.rot, team, { libero: false }) : baseFormation(sc.rot, team, { libero: settings.libero });
-  if (sc.fault) players = withConstraintMargin(players, sc.fault[0], sc.fault[1]);
-  if (sc.margin) players = withConstraintMargin(players, sc.margin[0], sc.margin[1]);
+  let players = zonesForm ? zoneCenterFormation(sc.rot, team, { libero: false }) : baseFormation(sc.rot, team, { libero: settings.libero, variant: sc.variant });
+  if (sc.fault) players = withConstraintMargin(players, sc.fault[0], sc.fault[1], sc.fault[2]);
+  if (sc.margin) players = withConstraintMargin(players, sc.margin[0], sc.margin[1], sc.margin[2]);
   if (sc.swap) players = swapZones(players, sc.swap[0], sc.swap[1]);
-  const scenario = scenarioFrom(sc.rot, players);
+  const scenario = scenarioFrom(sc.rot, players, 'custom', sc.variant || null);
   return { side, scenario };
 }
 
@@ -676,7 +684,7 @@ function applySceneConstraints(c) {
   if (c === true) arena.showConstraints(results, side);
   else if (c === 'fb' || c === 'lr') arena.showConstraints(results.filter((r) => r.c.kind === c), side);
   else if (c === 'violations') arena.showConstraints(results, side, { onlyViolations: true });
-  else if (c === 'critical') arena.showConstraints(results, side, { only: ROTATION_NOTES[sc.rot].critical });
+  else if (c === 'critical') arena.showConstraints(results, side, { only: notesFor(sc.rot, sc.variant).critical });
   else if (Array.isArray(c)) arena.showConstraints(results, side, { only: c });
 }
 
@@ -713,8 +721,8 @@ function renderStep() {
   tut.rot = s.scene.rot;
   let html = s.html;
   if (s.rotNote) {
-    const note = ROTATION_NOTES[s.rotNote];
-    html = `<p>${note.text}</p><p class="ex-h">Relazioni critiche in questa rotazione:</p><ul class="ex-list">${note.critical.map((id) => `<li><span class="pair">${id}</span> ${describeConstraint(CONSTRAINTS.find((c) => c.id === id))}</li>`).join('')}</ul>
+    const note = notesFor(s.rotNote, s.scene.variant);
+    html = `${s.intro || ''}<p>${note.text}</p><p class="ex-h">Relazioni critiche in questa rotazione:</p><ul class="ex-list">${note.critical.map((id) => `<li><span class="pair">${id}</span> ${describeConstraint(CONSTRAINTS.find((c) => c.id === id))}</li>`).join('')}</ul>
       <p class="note">Sei il ${s.scene.view === 'r1' ? '1°' : '2°'} arbitro; la squadra è alla tua ${teamOnLeft(s.scene.view, s.scene.side) ? 'sinistra: zone 1 e 2 vicine a te' : 'destra: zone 1 e 2 lontane da te'}.</p>`;
   }
   const quizzes = s.quiz ? (Array.isArray(s.quiz) ? s.quiz : [s.quiz]) : [];
@@ -787,7 +795,8 @@ function tutAction(a) {
 }
 
 // ---------- esplora ----------
-const explore = { rot: 1, side: 1, labels: 'full', zones: false, constraints: true, view: 'r2' };
+const explore = { rot: 1, side: 1, labels: 'full', zones: false, constraints: true, view: 'r2', opp: false };
+const exploreVariant = () => (explore.opp && OPP_ROTATIONS.includes(explore.rot) ? 'opp' : null);
 
 function startExplore() {
   enterMode('explore', 'Esplora');
@@ -799,7 +808,8 @@ function startExplore() {
 }
 
 function resetExplore(players) {
-  const sc = { rot: explore.rot, formation: 'reception', side: explore.side, view: explore.view, labels: explore.labels, zones: explore.zones, serving: true, constraints: explore.constraints ? true : null, zonesFrom: explore.view === 'r1' ? 'r1' : 'r2' };
+  if (!players) explore.lastLabel = null;
+  const sc = { rot: explore.rot, variant: exploreVariant(), formation: 'reception', side: explore.side, view: explore.view, labels: explore.labels, zones: explore.zones, serving: true, constraints: explore.constraints ? true : null, zonesFrom: explore.view === 'r1' ? 'r1' : 'r2' };
   showScene(sc, { keepView: !!players || explore.started });
   if (!explore.started || !players) {
     arena.setView(explore.view, explore.side, { refOrientation: arena.lastRefView || 'r2' });
@@ -840,6 +850,7 @@ function renderExplore() {
     <div class="checks">
       <label><input type="checkbox" data-c="zones" ${explore.zones ? 'checked' : ''}> Zone sul campo</label>
       <label><input type="checkbox" data-c="constraints" ${explore.constraints ? 'checked' : ''}> Relazioni</label>
+      ${OPP_ROTATIONS.includes(explore.rot) ? `<label><input type="checkbox" data-c="opp" ${explore.opp ? 'checked' : ''}> Opposto in ricezione</label>` : ''}
     </div>
     <div class="tut-actions">
       <button class="btn ghost" data-x="fault">Crea un fallo</button>
@@ -847,7 +858,7 @@ function renderExplore() {
       <button class="btn ghost" data-x="reset">Ripristina</button>
     </div>
     <div id="explore-status"></div>
-    <details class="fb-note" open><summary>${ROTATION_NOTES[explore.rot].title}</summary><p>${ROTATION_NOTES[explore.rot].text}</p></details>`;
+    <details class="fb-note" open><summary>${notesFor(explore.rot, exploreVariant()).title}</summary><p>${notesFor(explore.rot, exploreVariant()).text}</p></details>`;
   openPanel('explore');
   el.panel.querySelectorAll('.seg[data-k]').forEach((s) => s.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
     const k = s.dataset.k;
@@ -866,17 +877,19 @@ function renderExplore() {
   })));
   el.panel.querySelectorAll('[data-c]').forEach((c) => c.addEventListener('change', () => {
     explore[c.dataset.c] = c.checked;
+    if (c.dataset.c === 'opp') return resetExplore();
     if (c.dataset.c === 'zones') arena.showZones(explore.side, explore.zones, { readFrom: explore.view === 'r1' ? 'r1' : 'r2' });
     refreshExploreOverlay();
   }));
   el.panel.querySelectorAll('[data-x]').forEach((b) => b.addEventListener('click', () => {
     const x = b.dataset.x;
     if (x === 'reset') return resetExplore();
-    const base = baseFormation(explore.rot, teams[0], { libero: settings.libero });
-    const cons = pick(ROTATION_NOTES[explore.rot].critical);
-    const players = withConstraintMargin(base, cons, x === 'fault' ? -(0.3 + Math.random() * 0.6) : 0.05 + Math.random() * 0.08);
-    resetExplore(players);
-    toast(x === 'fault' ? 'Fallo creato: trovalo, poi trascina un giocatore per correggerlo.' : 'Regolare per pochi centimetri: guarda i piedi.');
+    const base = baseFormation(explore.rot, teams[0], { libero: settings.libero, variant: exploreVariant() });
+    const out = commonFault(base, explore.rot, exploreVariant(), x === 'fault' ? -(0.3 + Math.random() * 0.6) : 0.05 + Math.random() * 0.08);
+    if (!out) return;
+    explore.lastLabel = x === 'fault' ? out.label : null;
+    resetExplore(out.players);
+    toast(x === 'fault' ? 'Fallo tipico creato: trovalo, poi trascina un giocatore per correggerlo.' : 'Regolare per pochi centimetri: guarda i piedi.');
   }));
   renderExploreStatus();
 }
@@ -887,7 +900,7 @@ function renderExploreStatus() {
   const ev = sceneState.scenario.evaluation;
   box.innerHTML = ev.legal
     ? '<div class="status good">✓ Posizione regolare</div>'
-    : `<div class="status bad">✗ Fallo di posizione</div><ul class="ex-list">${ev.violations.map((v) => `<li><span class="pair bad">${v.c.id}</span> ${describeViolation(v)}</li>`).join('')}</ul>`;
+    : `<div class="status bad">✗ Fallo di posizione</div>${explore.lastLabel ? `<p class="note"><b>Fallo tipico:</b> ${explore.lastLabel}</p>` : ''}<ul class="ex-list">${ev.violations.map((v) => `<li><span class="pair bad">${v.c.id}</span> ${describeViolation(v)}</li>`).join('')}</ul>`;
 }
 
 // ---------- impostazioni ----------
@@ -905,6 +918,7 @@ const SETTINGS_SCHEMA = [
   { key: 'rounds', label: 'Servizi per partita', type: 'select', options: [[10, '10'], [20, '20'], [30, '30'], [50, '50']] },
   { key: 'freeze', label: 'Giocatori fermi dopo il servizio', hint: 'Disattivato: dopo il colpo i giocatori si spostano come in partita.', type: 'toggle' },
   { key: 'libero', label: 'Libero in campo', type: 'toggle' },
+  { key: 'oppReceive', label: 'Opposto in ricezione', hint: 'In P4, P3 e P2 l\'opposto è in seconda linea e può ricevere al posto dello schiacciatore di prima linea.', type: 'select', options: [['mai', 'Mai'], ['aVolte', 'A volte'], ['sempre', 'Sempre']] },
   { key: 'cardStyle', label: 'Scheda della formazione', type: 'select', options: [['vista', 'Orientata come la vista'], ['squadra', 'Standard (rete in alto)']] },
   { group: 'Aspetto' },
   { key: 'gender', label: 'Categoria', type: 'select', options: [['M', 'Maschile (rete 2,43 m)'], ['F', 'Femminile (rete 2,24 m)']] },

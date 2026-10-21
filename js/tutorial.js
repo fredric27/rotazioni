@@ -122,7 +122,7 @@ export const LESSONS = [
       {
         title: 'Le diagonali non contano',
         html: `<p>Le relazioni sono solo queste <b>7</b>. Tra giocatori in diagonale (4-6, 2-6, 3-5, 3-1, 4-1, 2-5) <b>non c'è nessun vincolo</b>.</p>
-<p>Qui, in P6, il palleggiatore (zona 6) è molto più vicino alla rete dello schiacciatore di zona 4 e del centrale di zona 2: è <b>regolare</b>, perché deve stare dietro solo all'opposto di zona 3.</p>
+<p>Qui, in P6, il palleggiatore (zona 6) è molto più vicino alla rete dello schiacciatore di zona 4 e di quello di zona 1, che ricevono: è <b>regolare</b>, perché deve stare dietro solo all'opposto di zona 3.</p>
 <p class="note">È la trappola più comune per chi inizia.</p>`,
         scene: { rot: 6, formation: 'reception', side: 1, view: 'top', topFrom: 'team', labels: 'full', constraints: true },
       },
@@ -206,13 +206,23 @@ export const LESSONS = [
     id: 'rotazioni',
     title: 'Le sei rotazioni in ricezione',
     summary: 'P1, P6, P5, P4, P3, P2: come si dispone la squadra e dove guardare.',
-    steps: [1, 6, 5, 4, 3, 2].map((rot, i) => ({
-      title: `P${rot}`,
-      rotNote: rot,
-      html: '',
-      scene: { rot, formation: 'reception', side: i % 2 ? -1 : 1, view: i % 2 ? 'r1' : 'r2', labels: 'full', constraints: 'critical', serving: true },
-      actions: [{ label: 'Vista dall\'alto', action: 'toggleTop' }, { label: 'Cambia arbitro', action: 'toggleRef' }],
-    })),
+    steps: [
+      ...[1, 6, 5, 4, 3, 2].map((rot, i) => ({
+        title: `P${rot}`,
+        rotNote: rot,
+        html: '',
+        scene: { rot, formation: 'reception', side: i % 2 ? -1 : 1, view: i % 2 ? 'r1' : 'r2', labels: 'full', constraints: 'critical', serving: true },
+        actions: [{ label: 'Vista dall\'alto', action: 'toggleTop' }, { label: 'Cambia arbitro', action: 'toggleRef' }],
+      })),
+      {
+        title: 'Variante: opposto in ricezione',
+        rotNote: 4,
+        html: '',
+        scene: { rot: 4, variant: 'opp', formation: 'reception', side: 1, view: 'top', topFrom: 'team', labels: 'full', constraints: 'critical', serving: true },
+        actions: [{ label: 'Vista dall\'alto', action: 'toggleTop' }, { label: 'Cambia arbitro', action: 'toggleRef' }],
+        intro: '<p>In P4, P3 e P2 l\'opposto è in seconda linea. Alcune squadre lo fanno ricevere al posto dello schiacciatore di prima linea, che così resta a rete pronto ad attaccare. Le relazioni da controllare cambiano: puoi attivare questa variante nelle impostazioni.</p>',
+      },
+    ],
   },
   {
     id: 'falli',
@@ -222,18 +232,24 @@ export const LESSONS = [
       {
         title: 'Palleggiatore troppo avanti (P1)',
         html: `<p>In P1 il palleggiatore (zona 1) vuole correre subito a rete. Se al colpo di servizio è <b>più vicino alla rete</b> dello schiacciatore di zona 2 è <b>fallo</b> (relazione 2-1).</p>`,
-        scene: { rot: 1, formation: 'reception', side: 1, view: 'r2', labels: 'full', fault: ['2-1', -0.6], constraints: 'violations', serving: true },
+        scene: { rot: 1, formation: 'reception', side: -1, view: 'r2', labels: 'full', fault: ['2-1', -0.6, [1]], constraints: 'violations', serving: true },
       },
       {
         title: 'Scivolare a destra (P5)',
         html: `<p>In P5 il palleggiatore parte da zona 5. Se si sposta a destra dello schiacciatore di zona 6 prima del colpo è <b>fallo</b> (5-6).</p>
 <p>Dal palo è un errore di <b>profondità</b>: guarda bene chi è più vicino alla tua laterale.</p>`,
-        scene: { rot: 5, formation: 'reception', side: -1, view: 'r1', labels: 'full', fault: ['5-6', -0.6], constraints: 'violations', serving: true },
+        scene: { rot: 5, formation: 'reception', side: -1, view: 'r1', labels: 'full', fault: ['5-6', -0.6, [5]], constraints: 'violations', serving: true },
+      },
+      {
+        title: 'Lo schiacciatore che si allarga (P4)',
+        html: `<p>In P4 lo schiacciatore di zona 2 riceve tutto a sinistra, appena a destra del centrale di zona 3 che è a rete nell'angolo. Se si allarga ancora e passa <b>a sinistra del centrale</b> è <b>fallo</b> (3-2).</p>
+<p>È uno dei falli più frequenti: i due giocatori sono lontanissimi (uno a rete, uno in ricezione) e l'occhio non li confronta.</p>`,
+        scene: { rot: 4, formation: 'reception', side: 1, view: 'r2', labels: 'full', fault: ['3-2', -0.5, [2]], constraints: 'violations', serving: true },
       },
       {
         title: 'Palleggiatore in prima linea (P4)',
         html: `<p>In P4 il palleggiatore è in zona 4. Se a rete si mette <b>alla destra</b> del centrale di zona 3 è <b>fallo</b> (4-3).</p>`,
-        scene: { rot: 4, formation: 'reception', side: 1, view: 'r1', labels: 'full', fault: ['4-3', -0.5], constraints: 'violations', serving: true },
+        scene: { rot: 4, formation: 'reception', side: 1, view: 'r1', labels: 'full', fault: ['4-3', -0.5, [4]], constraints: 'violations', serving: true },
       },
       {
         title: 'Giocatori scambiati',
@@ -244,12 +260,12 @@ export const LESSONS = [
       {
         title: 'Fallo o no?',
         html: '<p>Guarda la scena (senza aiuti) e decidi.</p>',
-        scene: { rot: 2, formation: 'reception', side: -1, view: 'r2', labels: 'num', fault: ['3-6', -0.4], constraints: null, serving: true },
+        scene: { rot: 2, formation: 'reception', side: -1, view: 'r2', labels: 'num', fault: ['3-6', -0.4, [3]], constraints: null, serving: true },
         quiz: {
           q: 'In questa P2 c\'è un fallo di posizione?',
           options: ['Sì', 'No'],
           answer: 0,
-          explain: 'Lo schiacciatore di zona 3 è più lontano dalla rete del giocatore di zona 6: fallo 3-6.',
+          explain: 'Lo schiacciatore di zona 3 riceve più lontano dalla rete dello schiacciatore di zona 6: fallo 3-6, tipico della P2.',
           reveal: { labels: 'full', constraints: true },
         },
       },
@@ -261,7 +277,7 @@ export const LESSONS = [
           q: 'In questa P6 c\'è un fallo di posizione?',
           options: ['Sì', 'No'],
           answer: 1,
-          explain: 'È regolare: il palleggiatore di zona 6 è davanti ai giocatori di zona 4 e 2, ma con loro non ha vincoli. Sta dietro l\'opposto di zona 3, tra il libero (5) e lo schiacciatore di zona 1.',
+          explain: 'È regolare: il palleggiatore di zona 6 è davanti allo schiacciatore di zona 4, ma con lui non ha vincoli. Sta dietro l\'opposto di zona 3, tra il libero (5) e lo schiacciatore di zona 1.',
           reveal: { labels: 'full', constraints: true },
         },
       },

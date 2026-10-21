@@ -32,7 +32,21 @@ Riferimento: Regole di Gioco FIVB 2025-2028.
 - **7.4.3**: si giudica dai piedi a contatto con il suolo. Basta una parte di un piede più vicina alla linea (centrale o laterale) di entrambi i piedi del giocatore di riferimento. Il gioco modella i due piedi di ogni giocatore e li usa per la valutazione.
 - Il fallo di posizione della squadra in ricezione lo fischia il 2° arbitro, **dopo** il colpo di servizio. Il fischio anticipato si può disattivare nelle impostazioni.
 
-Le formazioni di ricezione sono quelle tipiche del 5-1 con ricezione a tre (libero e due schiacciatori). L'ordine è P – S1 – C2 – O – S2 – C1 e il libero sostituisce il centrale di seconda linea.
+## Formazioni e falli
+
+Le formazioni di ricezione sono quelle del sistema 5-1 di [VBRotations](https://github.com/monkeysppp/VBRotations), posizioni "Ricezione": ricezione a tre con il libero e i due schiacciatori. L'ordine è P – S1 – C2 – O – S2 – C1 e il libero sostituisce il centrale di seconda linea.
+
+Nelle impostazioni puoi attivare l'**opposto in ricezione** ("a volte" o "sempre"). Vale per P4, P3 e P2: l'opposto è in seconda linea e riceve al posto dello schiacciatore di prima linea, che resta a rete.
+
+I falli non sono spostamenti a caso. Il gioco li prende da un catalogo di **falli tipici** per ogni rotazione (`COMMON_FAULTS` e `OPP_FAULTS` in `js/formations.js`), ad esempio:
+
+- il palleggiatore di seconda linea che penetra in anticipo (P1, P6, P5);
+- lo schiacciatore di prima linea che riceve troppo profondo, dietro al compagno di seconda linea (P6, P5, P3, P2);
+- lo schiacciatore di zona 2 della P4 che si allarga a sinistra del centrale;
+- le coppie nascoste a rete con l'ordine invertito;
+- l'opposto nascosto in fondo che si sposta oltre il vicino.
+
+A questi si aggiungono due giocatori con il posto scambiato e la squadra schierata come in un'altra rotazione. La difficoltà decide di quanti centimetri è il fallo e quanto spesso compaiono i casi regolari al limite.
 
 ## Sviluppo
 
