@@ -70,7 +70,7 @@ export function courtSVG({ players, side, orientation = 'r1', results = [], show
 }
 
 // Scheda della formazione: numero di maglia per ogni zona, orientata come lo schema.
-export function lineupSVG({ team, zonesRoles, side, orientation = 'r1', showRoles = false }) {
+export function lineupSVG({ team, zonesRoles, side, orientation = 'r1', showRoles = false, markSetter = false }) {
   const P = projector(orientation, side);
   const cells = { 4: [1.5, 1.5], 3: [1.5, 4.5], 2: [1.5, 7.5], 5: [4.5, 1.5], 6: [4.5, 4.5], 1: [4.5, 7.5] };
   const pts = Object.values(cells).map(([d, w]) => P(d, w));
@@ -86,6 +86,7 @@ export function lineupSVG({ team, zonesRoles, side, orientation = 'r1', showRole
     s += `<g transform="translate(${p.u} ${p.v})">`;
     s += `<rect x="-1.38" y="-1.38" width="2.76" height="2.76" rx="0.35" class="ls-cell"/>`;
     s += `<text class="ls-zone" x="-1.12" y="-0.88">${zone}</text>`;
+    if (markSetter && role === 'P') s += '<circle r="1.18" class="ls-setter"/>';
     s += `<circle r="0.95" fill="${kit.main}" stroke="${kit.trim}" stroke-width="0.12"/>`;
     s += `<text class="ls-num" fill="${kit.num}">${team.numbers[role]}</text>`;
     if (showRoles) s += `<text class="ls-role" y="1.12">${ROLES[role].short}</text>`;

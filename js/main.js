@@ -20,7 +20,7 @@ const store = {
 
 const DEFAULTS = {
   obsTime: 6, varTime: true, reactTime: 2, view: 'alterna', difficulty: 'medio', faultProb: 0.45, rounds: 20,
-  strict: true, freeze: false, libero: true, gender: 'M', kitHome: 'auto', kitAway: 'auto', kitLibero: 'auto',
+  strict: true, freeze: false, libero: true, numberTags: true, gender: 'M', kitHome: 'auto', kitAway: 'auto', kitLibero: 'auto',
   court: 'classico', cardStyle: 'vista', pip: true, sound: true, oppReceive: 'mai',
 };
 const settings = { ...DEFAULTS, ...store.get('settings', {}) };
@@ -245,14 +245,21 @@ function newRound() {
   round = { id: roundId, recv, side, rot, view, scenario, phase: 'setup', t0: arena.time, team: teams[recv] };
   session.n++;
   applyAssistLabels();
+  applyNumberTags();
   applyLiveHints();
   renderHud();
+}
+
+// Cartellino col numero sopra i giocatori in ricezione (non serve quando ci sono le etichette complete).
+function applyNumberTags() {
+  const labelsOn = session?.kind === 'assist' && store.get('assistLabels', true);
+  arena.setNumberTags(!!round && settings.numberTags && !labelsOn);
 }
 
 function applyAssistLabels(force) {
   const on = force ?? (session?.kind === 'assist' && store.get('assistLabels', true));
   arena.setLabels(on ? (p) => ({
-    main: ROLES[p.role].short, sub: `zona ${p.zone}`,
+    main: ROLES[p.role].short, sub: `zona ${p.zone} · n°${p.num}`,
     color: p.role === 'P' ? '#ffc629' : p.role === 'L' ? '#9fd8ff' : '#ffffff',
   }) : null);
 }
@@ -306,7 +313,7 @@ function renderHud() {
     </div>`;
   }
   el.hudInfo.innerHTML = info;
-  el.hudInfo.querySelector('#tg-labels')?.addEventListener('change', (e) => { store.set('assistLabels', e.target.checked); applyAssistLabels(); });
+  el.hudInfo.querySelector('#tg-labels')?.addEventListener('change', (e) => { store.set('assistLabels', e.target.checked); applyAssistLabels(); applyNumberTags(); });
   el.hudInfo.querySelector('#tg-pairs')?.addEventListener('change', (e) => { store.set('assistPairs', e.target.checked); if (round.phase !== 'result') applyLiveHints(); });
 
   if (kind === 'recognize') {
@@ -321,8 +328,9 @@ function renderHud() {
     const orientation = cardOrientation();
     const lib = r.scenario.players.find((p) => p.isLibero);
     el.hudCard.innerHTML = `<div class="card-title">Formazione in campo · ${teamLabel(t)}</div>
-      ${lineupSVG({ team: t, zonesRoles: zonesRolesOf(r), side: r.side, orientation, showRoles: kind === 'assist' })}
-      <div class="card-foot">${orientation === 'team' ? 'Schema standard: rete in alto' : 'Orientata come la vedi'}${lib ? ` · L n°${lib.num} al posto del n°${t.numbers[lib.replaces]}` : ''}</div>`;
+      ${lineupSVG({ team: t, zonesRoles: zonesRolesOf(r), side: r.side, orientation, showRoles: kind === 'assist', markSetter: true })}
+      <div class="card-setter"><span class="dot"></span> Palleggiatore <b>n°${t.numbers.P}</b>${lib ? ` · Libero <b class="lib">n°${lib.num}</b> <small>(per il n°${t.numbers[lib.replaces]})</small>` : ''}</div>
+      <div class="card-foot">${orientation === 'team' ? 'Schema standard: rete in alto' : 'Orientata come la vedi'}</div>`;
   }
   renderButtons();
 }
@@ -645,6 +653,7 @@ function buildScene(sc) {
 
 function showScene(sc, { animate = true, keepView = false } = {}) {
   const { side, scenario } = buildScene(sc);
+  arena.setNumberTags(false);
   sceneState = { sc: { ...sc }, side, scenario };
   arena.clearOverlay();
   arena.layoutReceiving(0, side, scenario, { animate });
@@ -919,6 +928,7 @@ const SETTINGS_SCHEMA = [
   { key: 'freeze', label: 'Giocatori fermi dopo il servizio', hint: 'Disattivato: dopo il colpo i giocatori si spostano come in partita.', type: 'toggle' },
   { key: 'libero', label: 'Libero in campo', type: 'toggle' },
   { key: 'oppReceive', label: 'Opposto in ricezione', hint: 'In P4, P3 e P2 l\'opposto è in seconda linea e può ricevere al posto dello schiacciatore di prima linea.', type: 'select', options: [['mai', 'Mai'], ['aVolte', 'A volte'], ['sempre', 'Sempre']] },
+  { key: 'numberTags', label: 'Numero sopra i giocatori', hint: 'Cartellino con il numero di maglia, utile quando i giocatori sono di profilo.', type: 'toggle' },
   { key: 'cardStyle', label: 'Scheda della formazione', type: 'select', options: [['vista', 'Orientata come la vista'], ['squadra', 'Standard (rete in alto)']] },
   { group: 'Aspetto' },
   { key: 'gender', label: 'Categoria', type: 'select', options: [['M', 'Maschile (rete 2,43 m)'], ['F', 'Femminile (rete 2,24 m)']] },

@@ -106,6 +106,11 @@ body[data-mode="assist"] #stage canvas, body[data-mode="match"] #stage canvas { 
 .score-grid b { font: 800 26px/1.05 var(--display); }
 #hud-card { position: absolute; top: 64px; right: 16px; width: 236px; padding: 10px 12px; }
 .card-title { font-size: 12.5px; font-weight: 600; color: #c7d2e8; margin-bottom: 6px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.card-setter { font-size: 13px; margin-top: 6px; color: #dbe3f2; }
+.card-setter b { color: var(--accent); font: 800 16px var(--display); }
+.card-setter small { color: var(--muted); }
+.card-setter b.lib { color: var(--text); }
+.card-setter .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--accent); vertical-align: 0; }
 .card-foot { font-size: 11px; color: var(--muted); margin-top: 4px; }
 .kit-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: var(--c); border: 2px solid var(--t); vertical-align: -1px; }
 .lineup-svg { width: 100%; height: auto; display: block; }
@@ -113,6 +118,7 @@ body[data-mode="assist"] #stage canvas, body[data-mode="match"] #stage canvas { 
 .ls-zone { font: 700 0.62px var(--display); fill: var(--muted); }
 .ls-num { font: 800 1.05px var(--display); text-anchor: middle; dominant-baseline: central; }
 .ls-role { font: 700 0.55px var(--display); fill: var(--accent); text-anchor: middle; }
+.ls-setter { fill: none; stroke: var(--accent); stroke-width: 0.16; }
 .ls-net { stroke: #fff; stroke-width: 0.16; stroke-dasharray: 0.3 0.15; }
 .roster { display: flex; flex-wrap: wrap; gap: 6px; }
 .roster span { background: rgba(255, 255, 255, 0.06); border-radius: 8px; padding: 4px 8px; font-size: 13px; color: var(--muted); }

@@ -5,9 +5,16 @@ import * as THREE from 'three';
 const UP = new THREE.Vector3(0, 1, 0);
 const unitCyl = new THREE.CylinderGeometry(1, 1, 1, 12, 1);
 const sphere = new THREE.SphereGeometry(1, 18, 14);
-const hairGeo = new THREE.SphereGeometry(1, 18, 10, 0, Math.PI * 2, 0, Math.PI * 0.55);
-const shoeGeo = new THREE.BoxGeometry(0.1, 0.075, 0.26);
+const hairGeo = new THREE.SphereGeometry(1, 20, 10, 0, Math.PI * 2, 0, Math.PI * 0.6);
+// scarpa arrotondata (capsula allungata lungo Z) e suola più larga e bassa
+const shoeGeo = new THREE.CapsuleGeometry(0.047, 0.17, 4, 12);
+shoeGeo.rotateX(Math.PI / 2);
+shoeGeo.scale(1, 0.78, 1);
 shoeGeo.translate(0, 0, 0.06);
+const soleGeo = new THREE.CapsuleGeometry(0.051, 0.17, 2, 12);
+soleGeo.rotateX(Math.PI / 2);
+soleGeo.scale(1, 0.3, 1);
+soleGeo.translate(0, 0, 0.06);
 const torsoGeo = new THREE.CylinderGeometry(0.2, 0.165, 1, 24, 1, false, Math.PI / 2);
 const pelvisGeo = new THREE.CylinderGeometry(0.175, 0.19, 1, 18, 1);
 
@@ -31,35 +38,75 @@ function blobShadow() {
   return m;
 }
 
+// Maglia "srotolata" sul cilindro del busto: u = 0.25 schiena, u = 0.75 petto, u = 0 e 0.5 i fianchi.
+// Canvas 1024×512 ≈ 1 m × 0.6 m: numeri di circa 16 cm dietro e 12 cm davanti, come quelli veri.
 function jerseyTexture(kit, number) {
+  const W = 1024, H = 512;
   const c = document.createElement('canvas');
-  c.width = 512; c.height = 256;
+  c.width = W; c.height = H;
   const g = c.getContext('2d');
   g.fillStyle = kit.main;
-  g.fillRect(0, 0, 512, 256);
-  // fianchi (u = 0 e u = 0.5) e colletto
+  g.fillRect(0, 0, W, H);
+  // fasce laterali sottili e colletto con scollo a V sul davanti
   g.fillStyle = kit.trim;
-  for (const x of [0, 256, 512]) g.fillRect(x - 34, 0, 68, 256);
-  g.fillRect(0, 0, 512, 16);
+  for (const x of [0, W / 2, W]) g.fillRect(x - 14, 40, 28, H - 40);
+  g.fillRect(0, 0, W, 26);
+  g.beginPath();
+  g.moveTo(W * 0.75 - 46, 0); g.lineTo(W * 0.75, 70); g.lineTo(W * 0.75 + 46, 0);
+  g.fill();
   g.fillStyle = kit.main;
-  for (const x of [0, 256, 512]) g.fillRect(x - 18, 30, 36, 226);
-  g.textAlign = 'center';
-  g.textBaseline = 'middle';
-  g.lineJoin = 'round';
-  const draw = (x, y, size) => {
-    g.font = `900 ${size}px "Barlow Condensed", "Arial Narrow", Arial, sans-serif`;
-    g.lineWidth = size * 0.09;
-    g.strokeStyle = kit.trim;
-    g.strokeText(String(number), x, y);
-    g.fillStyle = kit.num;
-    g.fillText(String(number), x, y);
-  };
-  draw(128, 120, 132); // schiena
-  draw(384, 112, 92); // petto
+  g.beginPath();
+  g.moveTo(W * 0.75 - 26, 0); g.lineTo(W * 0.75, 44); g.lineTo(W * 0.75 + 26, 0);
+  g.fill();
+  if (String(number)) {
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.lineJoin = 'round';
+    const draw = (x, y, size) => {
+      g.font = `800 ${size}px "Barlow Condensed", "Arial Narrow", Arial, sans-serif`;
+      g.lineWidth = size * 0.07;
+      g.strokeStyle = kit.trim;
+      g.strokeText(String(number), x, y);
+      g.fillStyle = kit.num;
+      g.fillText(String(number), x, y);
+    };
+    draw(W * 0.25, 210, 190); // schiena
+    draw(W * 0.75, 205, 138); // petto
+  }
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
-  t.anisotropy = 4;
+  t.anisotropy = 8;
   return t;
+}
+
+// Cartellino con il solo numero, nei colori della maglia: si legge anche quando il giocatore è di profilo.
+function numberTag(kit, number) {
+  const c = document.createElement('canvas');
+  c.width = 128; c.height = 96;
+  const g = c.getContext('2d');
+  g.fillStyle = kit.main;
+  g.strokeStyle = kit.trim;
+  g.lineWidth = 8;
+  g.beginPath();
+  g.roundRect(6, 6, 116, 72, 18);
+  g.fill();
+  g.stroke();
+  g.beginPath();
+  g.moveTo(52, 78); g.lineTo(64, 92); g.lineTo(76, 78);
+  g.fillStyle = kit.trim;
+  g.fill();
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.font = '800 58px "Barlow Condensed", "Arial Narrow", Arial, sans-serif';
+  g.fillStyle = kit.num;
+  g.fillText(String(number), 64, 45);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthTest: false, transparent: true, sizeAttenuation: false }));
+  s.scale.set(0.058, 0.0435, 1);
+  s.center.set(0.5, 0);
+  s.renderOrder = 9;
+  return s;
 }
 
 function labelSprite() {
@@ -128,7 +175,8 @@ export class Player3D {
     const pad = new THREE.MeshStandardMaterial({ color: '#1a1a1d', roughness: 0.9 });
     const shoe = new THREE.MeshStandardMaterial({ color: kit.id === 'nero' ? '#e8e8e8' : '#f5f5f5', roughness: 0.6 });
     const sole = new THREE.MeshStandardMaterial({ color: kit.trim, roughness: 0.6 });
-    this.materials = [skin, hair, shirt, jersey, shorts, sock, pad, shoe, sole];
+    const trim = new THREE.MeshStandardMaterial({ color: kit.trim, roughness: 0.75 });
+    this.materials = [skin, hair, shirt, jersey, shorts, sock, pad, shoe, sole, trim];
 
     const add = (geo, mat) => { const m = new THREE.Mesh(geo, mat); this.body.add(m); return m; };
     this.m = {
@@ -146,9 +194,10 @@ export class Player3D {
       this.m['sock' + s] = add(unitCyl, sock);
       this.m['pad' + s] = add(unitCyl, pad);
       this.m['shoe' + s] = add(shoeGeo, shoe);
-      this.m['sole' + s] = add(shoeGeo, sole);
+      this.m['sole' + s] = add(soleGeo, sole);
       this.m['upper' + s] = add(unitCyl, skin);
       this.m['sleeve' + s] = add(unitCyl, shirt);
+      this.m['cuff' + s] = add(unitCyl, trim);
       this.m['fore' + s] = add(unitCyl, skin);
       this.m['hand' + s] = add(sphere, skin);
     }
@@ -167,6 +216,11 @@ export class Player3D {
     this.label = labelSprite();
     this.label.visible = false;
     this.group.add(this.label);
+    if (String(number)) {
+      this.tag = numberTag(kit, number);
+      this.tag.visible = false;
+      this.group.add(this.tag);
+    }
 
     // stato
     this.pos = new THREE.Vector2(0, 0); // (x, z) mondo
@@ -213,7 +267,10 @@ export class Player3D {
     this.label.material.map.needsUpdate = true;
   }
 
-  showLabel(v) { this.label.visible = v; }
+  showLabel(v) { this.label.visible = v; this.syncTag(); }
+  showTag(v) { this.tagWanted = v; this.syncTag(); }
+  // il cartellino col numero si nasconde quando c'è l'etichetta completa
+  syncTag() { if (this.tag) this.tag.visible = !!this.tagWanted && !this.label.visible; }
   highlight(color) {
     this.ring.visible = !!color;
     if (color) this.ring.material.color.set(color);
@@ -324,9 +381,9 @@ export class Player3D {
     m.head.position.copy(headC);
     m.head.scale.setScalar(0.115 * k);
     m.head.scale.z = 0.125 * k;
-    m.hair.position.copy(headC).add(new THREE.Vector3(0, 0.012, -0.012));
-    m.hair.scale.set(0.122 * k, 0.125 * k, 0.135 * k);
-    m.hair.rotation.x = -0.35;
+    m.hair.position.copy(headC).add(new THREE.Vector3(0, 0.01, -0.018));
+    m.hair.scale.set(0.121 * k, 0.124 * k, 0.133 * k);
+    m.hair.rotation.x = -0.55;
     if (m.tail) {
       m.tail.position.copy(headC).add(new THREE.Vector3(0, -0.06 * k, -0.16 * k));
       m.tail.scale.set(0.05 * k, 0.12 * k, 0.05 * k);
@@ -342,16 +399,18 @@ export class Player3D {
       m['shoe' + s].rotation.set(0, 0, 0);
       m['shoe' + s].scale.setScalar(Math.max(0.85, k));
       m['sole' + s].position.set(foot.x, foot.y - 0.068, foot.z);
-      m['sole' + s].scale.set(Math.max(0.85, k) * 1.03, 0.18, Math.max(0.85, k) * 1.01);
+      m['sole' + s].scale.set(Math.max(0.85, k), 1, Math.max(0.85, k));
       placeLimb(m['upper' + s], sh, el, 0.052 * k);
       placeLimb(m['sleeve' + s], sh, el, 0.066 * k, -0.08, 0.42);
+      placeLimb(m['cuff' + s], sh, el, 0.069 * k, 0.36, 0.43);
       placeLimb(m['fore' + s], el, hand, 0.043 * k);
       m['hand' + s].position.copy(hand);
       m['hand' + s].scale.setScalar(0.048 * k);
     }
     this.joints.handR = handR;
     this.joints.handL = handL;
-    this.label.position.set(0, (this.k * 1.95) * (1 - 0.12 * c) + 0.12, 0);
+    this.label.position.set(headC.x, headC.y + 0.24, headC.z);
+    if (this.tag) this.tag.position.set(headC.x, headC.y + 0.18, headC.z);
     this.shadow.scale.set(0.85 + sw, 0.85 + 0.3 * c, 1);
   }
 
@@ -391,5 +450,7 @@ export class Player3D {
     for (const m of this.materials) { m.map?.dispose(); m.dispose(); }
     this.label.material.map.dispose();
     this.label.material.dispose();
+    this.tag?.material.map.dispose();
+    this.tag?.material.dispose();
   }
 }

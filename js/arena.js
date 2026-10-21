@@ -242,10 +242,27 @@ export class Arena {
     const rail = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.05, 0.05), frame);
     rail.position.set(0, 1.62, 0.33);
     stand.add(rail);
-    for (let i = 0; i < 5; i++) {
-      const step = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.04, 0.16), frame);
-      step.position.set(0, 0.26 * (i + 0.6), -0.45 - i * 0.12);
+    // scaletta sul retro: il gradino più alto è quello attaccato alla piattaforma
+    const steps = 5;
+    for (let i = 0; i < steps; i++) {
+      const step = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.04, 0.16), frame);
+      step.position.set(0, 0.25 * (i + 0.6), -0.4 - (steps - 1 - i) * 0.15);
       stand.add(step);
+    }
+    for (const x of [-0.3, 0.3]) {
+      const rail = new THREE.Mesh(new THREE.BoxGeometry(0.04, 1.6, 0.04), frame);
+      rail.position.set(x, 0.7, -0.72);
+      rail.rotation.x = Math.atan2(0.75, 1.4); // la cima verso la piattaforma
+      stand.add(rail);
+    }
+    // ringhiera della piattaforma sui tre lati verso il campo
+    for (const x of [-0.36, 0.36]) {
+      const side = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.05, 0.7), frame);
+      side.position.set(x, 1.62, 0);
+      stand.add(side);
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.3, 0.04), frame);
+      post.position.set(x, 1.48, 0.33);
+      stand.add(post);
     }
     stand.position.set(0, 0, -6.15);
     g.add(stand);
@@ -477,6 +494,13 @@ export class Arena {
     this.ball.visible = false;
     this.ballShadow.visible = false;
     this.ballAnim = null;
+  }
+
+  // Cartellini con il numero sopra i giocatori della squadra in ricezione.
+  setNumberTags(on) {
+    for (const list of this.figures) for (const f of list) f.showTag(false);
+    if (!this.receiving || !on) return;
+    for (const p of this.receiving.scenario.players) p.figure.showTag(true);
   }
 
   setLabels(fn) {
