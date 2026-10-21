@@ -1,0 +1,11 @@
+{
+  "name": "rotazioni",
+  "version": "1.0.0",
+  "description": "Allenamento per arbitri di pallavolo: posizioni in ricezione e fallo di posizione",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "python3 -m http.server 8000",
+    "test": "node tests/rules.test.mjs"
+  }
+}

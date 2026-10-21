@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Rotazioni · fallo di posizione</title>
+  <meta name="description" content="Allenamento per arbitri di pallavolo: posizioni della squadra in ricezione e fallo di posizione, viste dal 1° e dal 2° arbitro.">
+  <meta name="theme-color" content="#0a0e17">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='28' fill='%23ffc629'/%3E%3Cpath d='M32 4a28 28 0 0 1 0 56M8 18c14 4 30 16 34 40M56 18C42 22 26 34 22 58' fill='none' stroke='%230b1a3a' stroke-width='4'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body data-mode="home">
+  <div id="stage"></div>
+
+  <header id="topbar">
+    <button id="btn-home" class="brand" title="Home (Esc)">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="28" fill="#ffc629"/><path d="M32 4a28 28 0 0 1 0 56M8 18c14 4 30 16 34 40M56 18C42 22 26 34 22 58" fill="none" stroke="#0b1a3a" stroke-width="4"/></svg>
+      <span>Rotazioni</span>
+    </button>
+    <div id="mode-title"></div>
+    <div class="top-actions">
+      <div id="view-switch" class="seg" hidden>
+        <button data-view="r1" title="Tasto 1">1° arbitro</button>
+        <button data-view="r2" title="Tasto 2">2° arbitro</button>
+        <button data-view="top" title="Vista dall'alto">Alto</button>
+      </div>
+      <button id="btn-settings" class="icon-btn" title="Impostazioni" aria-label="Impostazioni">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.7 7.7 0 0 0-1.7-1L15 3.5h-4l-.4 2.5a7.7 7.7 0 0 0-1.7 1l-2.4-1-2 3.4L6.6 11a7.6 7.6 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7.7 7.7 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7.7 7.7 0 0 0 1.7-1l2.4 1 2-3.4-2.1-1.6Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="home" class="screen"></main>
+
+  <div id="hud" hidden>
+    <div id="hud-info" class="glass"></div>
+    <div id="hud-card" class="glass"></div>
+    <div id="hud-controls">
+      <div id="timer" hidden><div id="timer-fill"></div></div>
+      <div id="hud-buttons"></div>
+      <div id="hud-hint"></div>
+    </div>
+  </div>
+
+  <aside id="panel" class="glass" hidden></aside>
+  <div id="toast"></div>
+  <div id="modal" hidden><div class="modal-card glass"></div></div>
+
+  <noscript><p class="noscript">Per usare Rotazioni serve JavaScript.</p></noscript>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
