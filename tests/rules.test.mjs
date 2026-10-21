@@ -54,7 +54,7 @@ const stats = {};
 for (const difficulty of ['facile', 'medio', 'difficile']) {
   for (let i = 0; i < 600; i++) {
     const rot = 1 + (i % 6);
-    const s = makeScenario(rot, team, { difficulty, variant: i % 2 ? 'opp' : null });
+    const s = makeScenario(rot, team, { difficulty, variant: i % 2 ? "opp" : null, swapProb: 0.15, wrongRotProb: 0.1 });
     const k = `${difficulty}:${s.kind}`;
     stats[k] = (stats[k] || 0) + 1;
     assert.equal(s.fault, !s.evaluation.legal);

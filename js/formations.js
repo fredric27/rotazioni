@@ -140,12 +140,15 @@ const STANCE = {
   net: { sw: 0.17, crouch: 0.05 },
 };
 
-// swap: due giocatori scambiati; wrongRot: squadra schierata come in un'altra rotazione.
 export const DIFFICULTY = {
-  facile: { label: 'Facile', fault: [0.8, 1.6], jitter: 0.2, swap: 0, wrongRot: 0.1, close: 0, faultProb: 0.5 },
-  medio: { label: 'Medio', fault: [0.35, 0.9], jitter: 0.3, swap: 0.12, wrongRot: 0.1, close: 0.15, faultProb: 0.45 },
-  difficile: { label: 'Difficile', fault: [0.08, 0.4], jitter: 0.4, swap: 0.15, wrongRot: 0.1, close: 0.35, faultProb: 0.45 },
+  facile: { label: 'Facile', fault: [0.8, 1.6], jitter: 0.2, close: 0, faultProb: 0.5 },
+  medio: { label: 'Medio', fault: [0.35, 0.9], jitter: 0.3, close: 0.15, faultProb: 0.45 },
+  difficile: { label: 'Difficile', fault: [0.08, 0.4], jitter: 0.4, close: 0.35, faultProb: 0.45 },
 };
+
+// Quota dei falli (non dei servizi) dovuta a due giocatori scambiati o alla squadra in un'altra rotazione:
+// in partita sono errori rari, quindi di default bassi. Si regolano nelle impostazioni.
+export const RARE_FAULTS = { swapProb: 0.03, wrongRotProb: 0.03 };
 
 const rand = (a, b) => a + Math.random() * (b - a);
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
@@ -301,8 +304,10 @@ export function makeScenario(rot, team, opts = {}) {
   if (opts.forceKind === 'legal') result = null;
   else if (opts.forceKind === 'fault' || Math.random() < faultProb) {
     const r = Math.random();
-    if (r < diff.wrongRot) result = makeWrongRotation(rot, team, o);
-    else if (r < diff.wrongRot + diff.swap) result = makeSwap(players, rot, variant);
+    const wrongRot = opts.wrongRotProb ?? RARE_FAULTS.wrongRotProb;
+    const swap = opts.swapProb ?? RARE_FAULTS.swapProb;
+    if (r < wrongRot) result = makeWrongRotation(rot, team, o);
+    else if (r < wrongRot + swap) result = makeSwap(players, rot, variant);
     result ||= makeCommonFault(players, rot, variant, diff);
   } else if (Math.random() < diff.close) {
     result = makeClose(players, rot, variant);

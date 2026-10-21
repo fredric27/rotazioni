@@ -12,6 +12,9 @@ export const COURT_STYLES = {
   parquet: { name: 'Parquet', court: '#c99158', free: '#9c6a3c', grain: 0.16 },
 };
 
+// Quanto può girare la testa l'arbitro rispetto alla direzione di partenza (radianti): circa 140° per lato.
+const clampYaw = (v) => Math.max(-2.45, Math.min(2.45, v));
+const clampPitch = (v) => Math.max(-0.9, Math.min(0.7, v));
 const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
 // Coordinate di squadra -> mondo. s = +1 se la squadra occupa x > 0.
@@ -209,7 +212,7 @@ export class Arena {
       return a;
     });
     const postMat = new THREE.MeshStandardMaterial({ color: '#c9ccd2', metalness: 0.6, roughness: 0.35 });
-    const padMat = new THREE.MeshStandardMaterial({ color: '#13306b', roughness: 0.8 });
+    const padMat = new THREE.MeshStandardMaterial({ color: '#1747b8', roughness: 0.9 });
     this.posts = {};
     for (const s of [-1, 1]) {
       const postGroup = new THREE.Group();
@@ -716,8 +719,6 @@ export class Arena {
     const goal = this.viewGoal(view, side);
     this.controls.enabled = view === 'free';
     this.pip.visible = false;
-    // il palo sotto il seggiolone coprirebbe metà campo: dal punto di vista del 1° arbitro lo nascondiamo
-    this.posts[-1].visible = view !== 'r1';
     if (view === 'r1' || view === 'r2') {
       this.refs.r1.group.visible = view !== 'r1';
       this.refs.r2.group.visible = view !== 'r2';
@@ -850,8 +851,8 @@ export class Arena {
       }
       if (drag.kind === 'look') {
         const k = 1.6 / this.size.h;
-        this.look.yaw = Math.max(-1.1, Math.min(1.1, drag.yaw + (e.clientX - drag.x) * k));
-        this.look.pitch = Math.max(-0.5, Math.min(0.4, drag.pitch + (e.clientY - drag.y) * k));
+        this.look.yaw = clampYaw(drag.yaw + (e.clientX - drag.x) * k);
+        this.look.pitch = clampPitch(drag.pitch + (e.clientY - drag.y) * k);
         return;
       }
       const p = floorPoint(e);
@@ -879,8 +880,8 @@ export class Arena {
   }
 
   nudgeLook(dyaw, dpitch) {
-    this.look.yaw = Math.max(-1.1, Math.min(1.1, this.look.yaw + dyaw));
-    this.look.pitch = Math.max(-0.5, Math.min(0.4, this.look.pitch + dpitch));
+    this.look.yaw = clampYaw(this.look.yaw + dyaw);
+    this.look.pitch = clampPitch(this.look.pitch + dpitch);
   }
 
   onTick(fn) { this.tickers.add(fn); return () => this.tickers.delete(fn); }

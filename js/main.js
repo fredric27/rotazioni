@@ -20,7 +20,7 @@ const store = {
 
 const DEFAULTS = {
   obsTime: 6, varTime: true, reactTime: 2, view: 'alterna', difficulty: 'medio', faultProb: 0.45, rounds: 20,
-  strict: true, freeze: false, libero: true, numberTags: true, gender: 'M', kitHome: 'auto', kitAway: 'auto', kitLibero: 'auto',
+  strict: true, freeze: false, libero: true, numberTags: true, swapProb: 0.03, wrongRotProb: 0.03, gender: 'M', kitHome: 'auto', kitAway: 'auto', kitLibero: 'auto',
   court: 'classico', cardStyle: 'vista', pip: true, sound: true, oppReceive: 'mai',
 };
 const settings = { ...DEFAULTS, ...store.get('settings', {}) };
@@ -233,6 +233,7 @@ function newRound() {
   const view = pickView();
   const scenario = makeScenario(rot, teams[recv], {
     difficulty: settings.difficulty, faultProb: Number(settings.faultProb), libero: settings.libero,
+    swapProb: Number(settings.swapProb), wrongRotProb: Number(settings.wrongRotProb),
     forceKind: session.kind === 'recognize' ? 'legal' : undefined, variant: pickVariant(rot),
   });
   arena.clearOverlay();
@@ -924,6 +925,8 @@ const SETTINGS_SCHEMA = [
   { key: 'view', label: 'Vista', type: 'select', options: [['alterna', 'Alterna 1° e 2° arbitro'], ['r2', 'Sempre 2° arbitro'], ['r1', 'Sempre 1° arbitro'], ['casuale', 'Casuale']] },
   { key: 'difficulty', label: 'Difficoltà', hint: 'Facile: falli evidenti. Difficile: pochi centimetri, scambi e casi al limite.', type: 'select', options: Object.entries(DIFFICULTY).map(([k, d]) => [k, d.label]) },
   { key: 'faultProb', label: 'Frequenza dei falli', type: 'range', min: 0.1, max: 0.9, step: 0.05, fmt: (v) => `${Math.round(v * 100)}%` },
+  { key: 'swapProb', label: 'Giocatori scambiati', hint: 'Percentuale dei falli in cui due giocatori hanno il posto completamente scambiato. In partita è raro.', type: 'range', min: 0, max: 0.4, step: 0.01, fmt: (v) => `${Math.round(v * 100)}%` },
+  { key: 'wrongRotProb', label: 'Squadra in un\'altra rotazione', hint: 'Percentuale dei falli in cui tutta la squadra si schiera come nella rotazione prima o dopo. Anche questo è raro.', type: 'range', min: 0, max: 0.4, step: 0.01, fmt: (v) => `${Math.round(v * 100)}%` },
   { key: 'rounds', label: 'Servizi per partita', type: 'select', options: [[10, '10'], [20, '20'], [30, '30'], [50, '50']] },
   { key: 'freeze', label: 'Giocatori fermi dopo il servizio', hint: 'Disattivato: dopo il colpo i giocatori si spostano come in partita.', type: 'toggle' },
   { key: 'libero', label: 'Libero in campo', type: 'toggle' },
